@@ -3,35 +3,28 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
       - name: Unzip Project
-        run: unzip -q QuickCopy.zip
-        
+        run: find . -name "*.zip" -exec unzip -q -o {} \;
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-          
       - name: Build with Gradle
         run: |
-          if [ -d "QuickCopy/QuickCopy" ]; then
-            cd QuickCopy/QuickCopy
-          elif [ -d "QuickCopy" ]; then
-            cd QuickCopy
-          fi
+          D=$(dirname "$(find . -name settings.gradle.kts | head -1)")
+          cd "$D"
+          sed -i 's#cz.adaptech.tesseract4android:tesseract4android:4.7.0#com.github.adaptech-cz:Tesseract4Android:4.7.0#' app/build.gradle.kts
+          sed -i 's#repositories { google(); mavenCentral() }#repositories { google(); mavenCentral(); maven("https://jitpack.io") }#' settings.gradle.kts
           gradle assembleDebug --no-daemon
-        
       - uses: actions/upload-artifact@v4
         with:
           name: QuickCopy-apk
-          path: "**/build/outputs/apk/debug/*.apk"
+          path: "**/build/outputs/apk/debug/app-debug.apk"
